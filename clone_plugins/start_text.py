@@ -1,6 +1,11 @@
 import os
 import json
 from pyrogram import Client, filters
+from config import DB_URI as MONGO_URL
+from pymongo import MongoClient
+
+mongo_client = MongoClient(MONGO_URL)
+mongo_db = mongo_client["cloned_vjbotz"]
 
 # Default start text
 CLONE_START_TXT = """<b>Hᴇʟʟᴏ {}, ᴍʏ ɴᴀᴍᴇ {}, 【ɪ ᴀᴍ ʟᴀᴛᴇꜱᴛ ᴀᴅᴠᴀɴᴄᴇᴅ】ᴀɴᴅ ᴘᴏᴡᴇʀꜰᴜʟ ꜰɪʟᴇ ꜱᴛᴏʀᴇ ʙᴏᴛ +├ᴄᴜꜱᴛᴏᴍ ᴜʀʟ ꜱʜᴏʀᴛɴᴇʀ ꜱᴜᴘᴘᴏʀᴛ┤+  ᢵᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ sᴜᴘᴘᴏʀᴛ ᢴ ᢾᴀɴᴅ ʙᴇꜱᴛ ᴜɪ ᴘᴇʀꜰᴏʀᴍᴀɴᴄᴇᢿ
@@ -36,7 +41,8 @@ def save_start_text(bot_id, text):
 # Command to set custom start text (Owner only)
 @Client.on_message(filters.command("start_text") & filters.private)
 async def set_start_text(client, message):
-    if message.from_user.id != 7357726710:  # Replace with your Telegram ID
+        owner = mongo_db.bots.find_one({'bot_id': id})
+        ownerid = int(owner['user_id'])
         await message.reply("🚫 You are not authorized to use this command.")
         return
 
