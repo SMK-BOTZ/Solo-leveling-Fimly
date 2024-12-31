@@ -179,6 +179,20 @@ async def base_site_handler(client, m: Message):
 # Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
 # Ask Doubt on telegram @KingVJ01
 
+# Command to dynamically add a button to the /start command
+@Client.on_message(filters.command("btn1") & filters.incoming)
+async def add_button(client, message):
+    if len(message.command) < 3:
+        await message.reply_text("Usage: /btn1 <button_text> <url>")
+        return
+
+    button_text = message.command[1]
+    url = message.command[2]
+
+    # Add the new button dynamically
+    buttons = [[InlineKeyboardButton(button_text, url=url)]]
+    reply_markup = InlineKeyboardMarkup(buttons)
+    await message.reply_text("New button added!", reply_markup=reply_markup)
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
@@ -187,8 +201,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         await query.message.delete()
 
     elif query.data == "start":
-        # Buttons to be displayed with the start text
-        buttons = [[
+        # Default buttons
+        default_buttons = [[
             InlineKeyboardButton('💝 sᴜʙsᴄʀɪʙᴇ ᴍʏ ʏᴏᴜᴛᴜʙᴇ ᴄʜᴀɴɴᴇʟ', url='https://youtube.com/@Tech_VJ')
         ], [
             InlineKeyboardButton('🤖 ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄʟᴏɴᴇ ʙᴏᴛ', url=f'https://t.me/{client.me.username}?start=clone')
@@ -197,8 +211,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
             InlineKeyboardButton('ᴀʙᴏᴜᴛ 🔻', callback_data='about')
         ]]
 
+        # Combine default buttons with dynamically added buttons
+        all_buttons = default_buttons + dynamic_buttons
+
         # Reply markup for the buttons
-        reply_markup = InlineKeyboardMarkup(buttons)
+        reply_markup = InlineKeyboardMarkup(all_buttons)
 
         # Mention for the bot and dynamic loading of the start text
         me2 = (await client.get_me()).mention
