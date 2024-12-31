@@ -72,3 +72,13 @@ async def set_start_text(client, message):
 
     save_start_text(bot_id, new_text)  # Save the start text under this bot's unique ID
     await message.reply(f"✅ Start text updated to:\n\n`{new_text}`")
+
+# Command to display the current start text
+@Client.on_message(filters.command("start") & filters.private)
+async def start(client, message):
+    bot_id = (await client.get_me()).id
+    start_text = load_start_text(bot_id)  # Load the start text for this bot
+    await message.reply(
+        start_text.format(message.from_user.first_name, client.me.first_name),
+        disable_web_page_preview=True
+    )
