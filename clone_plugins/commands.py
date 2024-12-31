@@ -1,8 +1,8 @@
 import os
 import json
+from pymongo import MongoClient
 from pyrogram import Client, filters
 from config import DB_URI as MONGO_URL
-from pymongo import MongoClient
 
 mongo_client = MongoClient(MONGO_URL)
 mongo_db = mongo_client["cloned_vjbotz"]
@@ -38,43 +38,47 @@ def save_start_text(bot_id, text):
     except Exception as e:
         print(f"Error saving start text: {e}")
 
+# Command to set custom start text (Owner only)
 @Client.on_message(filters.command("start_text") & filters.private)
 async def set_start_text(client, message):
-    try:
-        # Get the bot owner's ID from the database
-        owner = mongo_db.bots.find_one({'bot_id': client.me.id})
-        owner_id = int(owner['user_id'])
+    # Get the bot's ID dynamically
+    bot_id = (await client.get_me()).id
 
-        # Check if the user is authorized
-        if message.from_user.id != owner_id:
-            await message.reply("🚫 You are not authorized to use this command.")
-            return
+    # Fetch owner information from the database
+    owner = mongo_db.bots.find_one({'bot_id': bot_id})
+    if not owner:
+        await message.reply_text("⚠️ Owner information not found. Please ensure the bot is correctly registered.")
+        return
 
-        # Validate the command arguments
-        if len(message.command) < 2:
-            await message.reply("⚠️ Please provide the new start text.\n\nUsage: `/start_text <new_text>`")
-            return
+    # Validate the owner's ID
+    ownerid = int(owner['user_id'])
+    if ownerid != message.from_user.id:
+        await message.reply("🚫 You are not authorized to use this command.")
+        return
 
-        new_text = " ".join(message.command[1:]).strip()
+    if len(message.command) < 2:
+        await message.reply("⚠️ Please provide the new start text.\n\nUsage: `/start_text <new_text>`")
+        return
 
-        # Validate the new start text
-        if not new_text:
-            await message.reply("⚠️ The start text cannot be empty. Please provide valid text.")
-            return
+    new_text = " ".join(message.command[1:])
 
-        if len(new_text) > 4096:
-            await message.reply("⚠️ The start text is too long. Please provide a shorter text.")
-            return
+    if not new_text.strip():
+        await message.reply("⚠️ The start text cannot be empty. Please provide valid text.")
+        return
 
-        # Update the start text in the database
-        mongo_db.bots.update_one(
-            {'bot_id': client.me.id},
-            {'$set': {'start_text': new_text}}
-        )
+    if len(new_text) > 4096:
+        await message.reply("⚠️ The start text is too long. Please provide a shorter text.")
+        return
 
-        # Confirm success
-        await message.reply(f"✅ Start text updated successfully:\n\n`{new_text}`")
+    save_start_text(bot_id, new_text)  # Save the start text under this bot's unique ID
+    await message.reply(f"✅ Start text updated to:\n\n`{new_text}`")
 
-    except Exception as e:
-        # Handle any exceptions
-        await message.reply(f"❌ An error occurred: {str(e)}")
+# Command to display the current start text
+@Client.on_message(filters.command("start") & filters.private)
+async def start(client, message):
+    bot_id = (await client.get_me()).id
+    start_text = load_start_text(bot_id)  # Load the start text for this bot
+    await message.reply(
+        start_text.format(message.from_user.first_name, client.me.first_name),
+        disable_web_page_preview=True
+    )
