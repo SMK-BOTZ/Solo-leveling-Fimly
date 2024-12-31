@@ -38,23 +38,26 @@ def save_start_text(bot_id, text):
     except Exception as e:
         print(f"Error saving start text: {e}")
 
-# Command to set custom start text (Owner only)
 @Client.on_message(filters.command("start_text") & filters.private)
 async def set_start_text(client, message):
     try:
+        # Get the bot owner's ID from the database
         owner = mongo_db.bots.find_one({'bot_id': client.me.id})
         owner_id = int(owner['user_id'])
 
+        # Check if the user is authorized
         if message.from_user.id != owner_id:
             await message.reply("🚫 You are not authorized to use this command.")
             return
 
+        # Validate the command arguments
         if len(message.command) < 2:
             await message.reply("⚠️ Please provide the new start text.\n\nUsage: `/start_text <new_text>`")
             return
 
         new_text = " ".join(message.command[1:]).strip()
 
+        # Validate the new start text
         if not new_text:
             await message.reply("⚠️ The start text cannot be empty. Please provide valid text.")
             return
@@ -63,7 +66,15 @@ async def set_start_text(client, message):
             await message.reply("⚠️ The start text is too long. Please provide a shorter text.")
             return
 
-        save_start_text(client.me.id, new_text)
+        # Update the start text in the database
+        mongo_db.bots.update_one(
+            {'bot_id': client.me.id},
+            {'$set': {'start_text': new_text}}
+        )
+
+        # Confirm success
         await message.reply(f"✅ Start text updated successfully:\n\n`{new_text}`")
+
     except Exception as e:
+        # Handle any exceptions
         await message.reply(f"❌ An error occurred: {str(e)}")
